@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+ This page is shown when the extension button is clicked, because the
+ "browser_action" field in manifest.json contains the "default_popup" key with
+ value "popup.html".
+ -->
+<html>
+  <head>
+    <title>Command center!</title>
+    <link href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body {
+        font-size: 100%;
+        width:400px;
+        height:300px;
+      }
+      #status {
+        /* avoid an excessively wide status text */
+        white-space: pre;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        max-width: 400px;
+      }
+      
+    </style>
+
+    <!--
+      - JavaScript and HTML must be in separate files: see our Content Security
+      - Policy documentation[1] for details and explanation.
+      -
+      - [1]: https://developer.chrome.com/extensions/contentSecurityPolicy
+     -->
+
+  </head>
+  <body>
+      <svg width="17" height="32" viewBox="0 0 17 32">
+	<path d="M8.393 1.878l8.116 7.311v13.599l-8.116 7.311-8.116-7.311v-13.599l8.116-7.311zM14.608 21.911v-11.844l-6.215-5.557-5.995 5.484 5.995 5.703v6.215l-6.215-5.922v5.922l6.215 5.483 6.215-5.483z" fill="#000000" />
+</svg>
+    <h4>Credits</h4>
+      <p>
+          Plugin font by <a href="https://github.com/MWDelaney/Netrunner-Icon-Font/blob/master/Netrunner/svg/Shaper-smooth.svg">MWDelaney</a><br />
+      Code to
+      </p>
+    
+      <p>
+        Also: read <a href="http://www.semicoop.com">Semicoop.com!</a> (Because it's awesome!)
+      </p>
+  </body>
+</html>
+
