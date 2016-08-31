@@ -17,13 +17,13 @@ $(function () {
         rightPage = true;
         uiChange = function (formats, formatResults) {
         
-                $(".nav-tabs").append('<li role="presentation"><a href="#tab-pane-altformat" aria-controls="tab-pane-altformat" role="tab" data-toggle="tab" id="tab-header-altformat">Alt format</a></li>');
+                $(".nav[role='tablist']").append('<li role="presentation"><a href="#tab-pane-altformat" aria-controls="tab-pane-altformat" role="tab" data-toggle="tab" id="tab-header-altformat">Alt format</a></li>');
                 $(".tab-content").append('<div role="tabpanel" class="tab-pane active" id="tab-pane-altformat"></div>');
                 $("#tab-pane-altformat").append('<table class="table table-condensed" id="table-alt"><thead><tr><th colspan="1"><span class="glyphicon glyphicon-barcode"></span> Alt formats</th></tr></thead><tbody></tbody></table>');
                 createFormatRows(formats, formatResults);
-                $(".tab-content").append('<button id="recheckDeck" class="btn" type="submit">Recheck deck</button> ');
-                $(".tab-content").append('<button id="newFormat" class="btn btn-success" type="submit">New Format</button> ');
-                $(".tab-content").append('<button id="importFormat" class="btn btn-primary" type="submit">Import</button>');
+                $(".tab-content").append('<button id="recheckDeck" class="btn">Recheck deck</button> ');
+                $(".tab-content").append('<button id="newFormat" class="btn btn-success">New Format</button> ');
+                $(".tab-content").append('<button id="importFormat" class="btn btn-primary">Import</button>');
                 createEditForm($("#tab-pane-altformat"));
                 createImportForm($("#tab-pane-altformat"));
                 $(".importform").hide();
@@ -67,6 +67,7 @@ $(function () {
                 $(document.body).on('click', ".edit", function (e) {
                     event.preventDefault();
                     var index = $(this).attr("data-index");
+                    console.log("fill id", index);
                     fillForm(index);
                     $(".formatform").show("slow", function () {
                         // Animation complete.
@@ -99,11 +100,11 @@ $(function () {
         };
     }
     else if (patt3.test(location.pathname)) {
-        
+        console.log("patt3");
         rightPage = true;
         uiChange = function (formats, formatResults) {
             
-                $("#tools").prepend('<table class="table table-condensed" id="table-alt"><thead><tr><th colspan="1"><span class="glyphicon glyphicon-barcode"></span> Alt formats</th></tr></thead><tbody></tbody></table>');
+                $("#table-mwl").prepend('<table class="table table-condensed" id="table-alt"><thead><tr><th colspan="1"><span class="glyphicon glyphicon-barcode"></span> Alt formats</th></tr></thead><tbody></tbody></table>');
                 $.each(formatResults, function (index, formatResult) {
                     var dataContent = createErrorString(formatResult.mgs);
                     var iconString = ((formatResult.mgs.length > 0) ? "glyphicon-thumbs-down" : "glyphicon-thumbs-up");
@@ -202,16 +203,18 @@ function createImportForm(selector) {
         if (response) {
             try {
                 var newFormat = JSON.parse(response);
-                dc.importFormat(format, function () {
+                dc.importFormat(newFormat, function () {
+                    console.log("callback");
                     dc.checkDeck();
                     createFormatRows(dc.formats, dc.formatsErrors);
                 });
                 $(".importform").hide();
                 $("#importString").val("");
                 $(".errorImport").remove();
-                return true;
+//                return true;
             }
             catch (e) {
+                console.log(e);
                 $(".importform").append("<p class='errorImport'>Something is not right in this JSON string!</p>");
                 setTimeout(function () {
                     $(".errorImport").fadeOut("slow", function () {

@@ -162,8 +162,8 @@ function createEditForm(selector) {
     })
     $("#formatform").submit(function (event) {
         event.preventDefault();
-        if ($("#new_or_edit").val() > -1) {
-            editFormat($(".new_or_edit").val());
+        if ($("#new_or_edit").val() > -1) {    
+            editFormat($("#new_or_edit").val());
         }
         else {
             saveFormat();
@@ -182,6 +182,7 @@ function emptyForm() {
     $('#formatform_exemptedFactionCodes').tagsinput('removeAll');
     $('#formatform_exemptedTypeCodes').tagsinput('removeAll');
     $(':input', '#formatform').not(':button, :submit, :reset, :hidden').val('').removeAttr('checked').removeAttr('selected');
+    $("#new_or_edit").val(-1);
     $(".formatform_wildcard").remove();
 }
 
@@ -189,12 +190,14 @@ function fillForm(index) {
     emptyForm();
     $("#new_or_edit").val(index);
     var format = dc.formats[index];
+    
     $("#formatform_name").val(format.name);
     $("#formatform_description").val(format.description);
     $("#formatform_author").val(format.author);
     $("#formatform_version").val(format.version);
     $("#formatform_url").val(format.url);
     $("#formatform_allowedCores").val(format.rules.allowedCores);
+    
     $.each(dc.getPackNames(format.rules.allowedPacks), function (index, value) {
         if (value != "*") {
             $("#formatform_allowedPacks").tagsinput('add', value);
@@ -248,7 +251,6 @@ function fillForm(index) {
 }
 
 function editFormat(index) {
-
     //Delete current format
     dc.deleteFormat(index);
     saveFormat();
@@ -268,6 +270,7 @@ function saveFormat() {
         }
         wildCards.push(wildCard);
     })
+    
     var format = {
         "name": $("#formatform_name").val()
         , "description": $("#formatform_description").val()
@@ -278,21 +281,22 @@ function saveFormat() {
         , "rules": {
             "allowedCores": (($("#formatform_allowedCores").val() != "") ? $("#formatform_allowedCores").val() : 3)
             , "allowedPacks": (($("#formatform_allowedPacks").val() != "") ? dc.getPackCode($("#formatform_allowedPacks").tagsinput('items')) : ["*"])
-            , "allowedCylces": (($("#formatform_allowedCylces").val() != "") ? $("#formatform_allowedCylces").tagsinput('items') : ["*"])
-            , "allowedIDFactions": (($("#formatform_allowedIDFactions").val() != "") ? $("#formatform_allowedIDFactions").tagsinput('items') : ["*"])
-            , "allowedCardFactions": (($("#formatform_allowedCardFactions").val() != "") ? $("#formatform_allowedCardFactions").tagsinput('items') : ["*"])
+            , "allowedCylces": (($("#formatform_allowedCylces").val() != "") ? $("#formatform_allowedCylces").tagsinput('items').slice() : ["*"])
+            , "allowedIDFactions": (($("#formatform_allowedIDFactions").val() != "") ? $("#formatform_allowedIDFactions").tagsinput('items').slice() : ["*"])
+            , "allowedCardFactions": (($("#formatform_allowedCardFactions").val() != "") ? $("#formatform_allowedCardFactions").tagsinput('items').slice() : ["*"])
             , "allowedUniqueDataPacks": (($("#formatform_allowedUniqueDataPacks").val() != "") ? $("#formatform_allowedUniqueDataPacks").val() : -1)
             , "allowedUniqueBigPacks": (($("#formatform_allowedUniqueBigPacks").val() != "") ? $("#formatform_allowedUniqueBigPacks").val() : -1)
             , "forbiddenCards": (($("#formatform_forbiddencards").val() != "") ? dc.getCardIds($("#formatform_forbiddencards").tagsinput('items')) : [])
         }
         , "exceptions": {
-            "exemptedTypeCodes": (($("#formatform_exemptedTypeCodes").val() != "") ? $("#formatform_exemptedTypeCodes").tagsinput('items') : [])
+            "exemptedTypeCodes": (($("#formatform_exemptedTypeCodes").val() != "") ? $("#formatform_exemptedTypeCodes").tagsinput('items').slice() : [])
             , "exemptedPackCodes": (($("#formatform_exemptedPackCodes").val() != "") ? dc.getPackCode($("#formatform_exemptedPackCodes").tagsinput('items')) : [])
-            , "exemptedFactionCodes": (($("#formatform_exemptedFactionCodes").val() != "") ? $("#formatform_exemptedFactionCodes").tagsinput('items') : [])
+            , "exemptedFactionCodes": (($("#formatform_exemptedFactionCodes").val() != "") ? $("#formatform_exemptedFactionCodes").tagsinput('items').slice() : [])
             , "exemptedWildCards": wildCards
             , "exemptedCards": (($("#formatform_exemptedCards").val() != "") ? dc.getCardIds($("#formatform_exemptedCards").tagsinput('items')) : [])
         }
     };
+    
     dc.importFormat(format, function () {
         dc.checkDeck();
         createFormatRows(dc.formats, dc.formatsErrors);

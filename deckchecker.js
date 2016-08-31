@@ -43,13 +43,13 @@ class DeckChecker {
             })
             var formatErrors = _parent.formatsErrors[indexFormat];
             formatErrors.mgs = [];
-            formatErrors.usedDataPacks = [];
-            formatErrors.usedBigPacks = [];
+            formatErrors.usedDataPacks = new Object();
+            formatErrors.usedBigPacks = new Object();
             formatErrors.deckCards = [];
             $("#deck-content .card, #identity .card").each(function (index, value) {
                 var card = new Object();
                 card.name = $(value).attr("data-index");
-                if ($(value).attr("id") == "identity") {
+                if (_parent.cards[card.name].type_code == "identity") {
                     card.amount = 1;
                 }
                 else {
@@ -64,68 +64,140 @@ class DeckChecker {
                     if (!result.valid) {
                         card.error = true;
                         card.message = result.message;
+                        var wildCardCheck = _parent.handleWildcard(card, _parent.formatsErrors[indexFormat].wildcards);
+                        if (wildCardCheck[0]) {
+                            card.error = false;
+                            card.message = wildCardCheck[1];
+                            //                            console.log("wildcard", card);
+                        }
+                        else {
+                            formatErrors.mgs.push(card.message);
+                            //                            console.log("error", card);
+                        }
                     }
+                    //Gather all datapack and big expansions and add all the cards to them
                     var pack_code = _parent.cards[card.name].pack_code;
                     if (pack_code in _parent.packList) {
-                        if ($.inArray(pack_code, formatErrors.usedDataPacks) == -1 && $.inArray(pack_code, formatErrors.usedBigPacks) == -1 && pack_code != "core") {
+                        if ($.inArray(pack_code, Object.keys(formatErrors.usedDataPacks)) == -1 && $.inArray(pack_code, Object.keys(formatErrors.usedBigPacks)) == -1 && pack_code != "core") {
                             if (_parent.packList[pack_code].type == "small") {
-                                if ($.inArray(pack_code, formatErrors.usedDataPacks) == -1) {
-                                    formatErrors.usedDataPacks.push(pack_code);
-                                    if (formatErrors.usedDataPacks.length > format.rules.allowedUniqueDataPacks && format.rules.allowedUniqueDataPacks > -1) {
-                                        var wildCardCheck = _parent.handleWildcard(card, _parent.formatsErrors[indexFormat].wildcards);
-                                        if (wildCardCheck[0]) {
-                                            card.error = false;
-                                            card.message = wildCardCheck[1];
-                                            formatErrors.usedDataPacks.splice(formatErrors.usedDataPacks.length - 1, 1);
-                                        }
-                                        else {
-                                            formatErrors.mgs[0] = formatErrors.usedDataPacks.length + " datapacks used, only " + format.rules.allowedUniqueDataPacks + " allowed!";
-                                        }
-                                    }
+                                //Als de datapack nog niet bestaat
+                                if ($.inArray(pack_code, Object.keys(formatErrors.usedDataPacks) == -1)) {
+                                    formatErrors.usedDataPacks[pack_code] = [];
+                                    //                                    console.log("created datapack", pack_code);
                                 }
                             }
                             else {
-                                if ($.inArray(pack_code, formatErrors.usedBigPacks) == -1) {
-                                    formatErrors.usedBigPacks.push(pack_code);
-                                    if (formatErrors.usedBigPacks.length > format.rules.allowedUniqueBigPacks && format.rules.allowedUniqueBigPacks > -1) {
-                                        var wildCardCheck = _parent.handleWildcard(card, _parent.formatsErrors[indexFormat].wildcards);
-                                        if (wildCardCheck[0]) {
-                                            card.error = false;
-                                            card.message = wildCardCheck[1];
-                                            formatErrors.usedBigPacks.splice(formatErrors.usedBigPacks.length - 1, 1);
-                                        }
-                                        else {
-                                            formatErrors.mgs[1] = formatErrors.usedBigPacks.length + " big expansions used, only " + format.rules.allowedUniqueBigPacks + " allowed!";
-                                        }
-                                    }
+                                if ($.inArray(pack_code, Object.keys(formatErrors.usedBigPacks)) == -1) {
+                                    formatErrors.usedBigPacks[pack_code] = [];
+                                    //                                    console.log("created bigpack", pack_code);
                                 }
                             }
                         }
+                        //What
+                        if (_parent.packList[pack_code].type == "small") {
+                            formatErrors.usedDataPacks[pack_code].push(card);
+                        }
+                        else if (pack_code != "core") {
+                            formatErrors.usedBigPacks[pack_code].push(card);
+                        }
                     }
-                    else {
-                        card.error = true;
-                        card.message = pack_code + ": unknown pack";
-                    }
+                }
+                else {
+                    card.error = true;
+                    card.message = pack_code + ": unknown pack";
                 }
                 formatErrors.deckCards.push(card);
             });
+            //console.log("datapacks", formatErrors.usedDataPacks);
+            //console.log("bigpacks", formatErrors.usedBigPacks);
             //trigger function for showing messages and check
-            $.each(formatErrors.deckCards, function (index, card) {
-                if (card.error) {
-                    var wildCardCheck = _parent.handleWildcard(card, _parent.formatsErrors[indexFormat].wildcards);
-                    if (wildCardCheck[0]) {
-                        card.error = false;
-                        card.message = wildCardCheck[1];
+            //Check the wildcard for pack distribution!
+            var bigexpansions = [];
+            if (Object.keys(formatErrors.usedBigPacks).length > format.rules.allowedUniqueBigPacks) {
+                bigexpansions = $.map(formatErrors.usedBigPacks, function (obj, key) {
+                    return {
+                        name: key
+                        , cards: obj
+                        , type: "bigpack"
                     }
-                    else {
-                        formatErrors.mgs.push(card.message);
+                })
+            }
+            var datapacks = [];
+            if (Object.keys(formatErrors.usedDataPacks).length > format.rules.allowedUniqueDataPacks) {
+                datapacks = $.map(formatErrors.usedDataPacks, function (obj, key) {
+                    return {
+                        name: key
+                        , cards: obj
+                        , type: "datapack"
+                    }
+                })
+            };
+            var usedExpansions = bigexpansions.concat(datapacks);
+            //console.log("usedExpansions", usedExpansions);
+            //Getting the packs with the least used cards.
+            usedExpansions.sort(function (a, b) {
+                    return a.cards.length - b.cards.length
+                })
+                //            console.log("usedExpansionsSorted", usedExpansions);
+            for (var i = 0; i < usedExpansions.length; i++) {
+                var expansion = usedExpansions[i];
+                //Has the card already been Wildcarded? Remove it!
+                for (var y = 0; y < expansion.cards.length; y++) {
+                    if (expansion.cards[y].error === false) {
+                        console.log("already wildcarded", expansion.cards[y]);
+                        expansion.cards.splice(y, 1);
                     }
                 }
-                else if (card.error === false) {}
-            })
+                var wildCardsLeft = ((_parent.formatsErrors[indexFormat].wildcards.length > 0) ? true : false);
+                //                console.log("wildCardsLeft", wildCardsLeft, _parent.formatsErrors[indexFormat].wildcards.length);
+                //Now substract one card add a time until you are out of WildCards
+                if (wildCardsLeft) {
+                    while (wildCardsLeft) {
+                        //Are there still any cards left in this pack? Otherwise remove it
+                        if (expansion.cards.length == 0) {
+                            //                            console.log("deleted", expansion);
+                            if (expansion.type == "datapack") {
+                                delete formatErrors.usedDataPacks[expansion.name];
+                            }
+                            else {
+                                delete formatErrors.usedBigPacks[expansion.name];
+                            }
+                            break;
+                            wildCardsLeft = false;
+                        }
+                        var wildCardCheck = _parent.handleWildcard(expansion.cards[0], _parent.formatsErrors[indexFormat].wildcards);
+                        if (wildCardCheck[0]) {
+                            //ZOEK UIT HOE JE EEN KAART WEGGOOIT EN TEL DE WILDCARDS ETC<<<<
+                            expansion.cards[0].error = false;
+                            expansion.cards[0].message = wildCardCheck[1];
+                            expansion.cards.splice(0, 1);
+                        }
+                        else {
+                            if (expansion.type == "datapack" && format.rules.allowedUniqueDataPacks > -1) {
+                                formatErrors.mgs[0] = Object.keys(formatErrors.usedDataPacks).length + " datapacks used, only " + format.rules.allowedUniqueDataPacks + " allowed!";
+                            }
+                            else if (format.rules.allowedUniqueBigPacks > -1) {
+                                formatErrors.mgs[1] = Object.keys(formatErrors.usedBigPacks).length + " bigpacks used, only " + format.rules.allowedUniqueBigPacks + " allowed!";
+                            }
+                            wildCardsLeft = false;
+                        }
+                    }
+                }
+                else {
+                    if (Object.keys(formatErrors.usedDataPacks).length > format.rules.allowedUniqueDataPacks && format.rules.allowedUniqueDataPacks > -1) {
+                        formatErrors.mgs[0] = Object.keys(formatErrors.usedDataPacks).length + " datapacks used, only " + format.rules.allowedUniqueDataPacks + " allowed!";
+                    }
+                    if (Object.keys(formatErrors.usedBigPacks).length > format.rules.allowedUniqueBigPacks && format.rules.allowedUniqueBigPacks > -1) {
+                        formatErrors.mgs[1] = Object.keys(formatErrors.usedBigPacks).length + " bigpacks used, only " + format.rules.allowedUniqueBigPacks + " allowed!";
+                    }
+                }
+            }
         })
     }
     handleWildcard(card, wildCards) {
+        if (this.cards[card.name].type_code == "identity") {
+            return [false, ""];
+        }
         //check how many
         //check amount of card
         //find wildcard closest to this card
@@ -140,7 +212,7 @@ class DeckChecker {
             }
         }
         if (closestIndex > -1) {
-            wildCards[closestIndex].uniqueCards = -1;
+            wildCards[closestIndex].uniqueCards -= 1;
             if (wildCards[closestIndex].uniqueCards <= 0) {
                 wildCards.splice(closestIndex, 1);
             }
@@ -386,6 +458,7 @@ class DeckChecker {
         }
         //delete format
     deleteFormat(index) {
+//            console.log(index);
             this.formats.splice(index, 1);
             this.formatsErrors.splice(index, 1);
             chrome.storage.local.set({
@@ -396,11 +469,16 @@ class DeckChecker {
     importFormat(newFormat, callback) {
         var _parent = this;
         this.formats.push(newFormat);
+//        console.log("imported format", newFormat);
         chrome.storage.local.set({
             'formats': this.formats
         }, function () {
-            callback();
-            chrome.storage.local.get("formats", function (obj) {});
+            
+            chrome.storage.local.get("formats", function (obj) {
+                this.formats = obj.formats;
+//                console.log(this.formats);
+                callback();
+            });
         });
     }
     getFormats() {
